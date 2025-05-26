@@ -61,28 +61,30 @@ if __name__ == '__main__':
     else:
         print('その時間は埋まっています。')
 def reserve_if_available(date_string):
-    """
-    '6月5日14時' のような文字列を受け取って、
-    Googleカレンダーをチェックし、空いていれば予約を入れる。
-    """
     import re
     import datetime
 
-    # 例: '6月5日14時' → datetimeに変換
-    match = re.match(r'(\d{1,2})月(\d{1,2})日(\d{1,2})時', date_string)
+    match = re.search(r'(\d{1,2})月(\d{1,2})日(\d{1,2})時', date_string)
     if not match:
         return '日付の形式が正しくありません。「6月5日14時」のように入力してください。'
 
     month, day, hour = map(int, match.groups())
     year = datetime.datetime.now().year
-    start = datetime.datetime(year, month, day, hour, 0)
-    end = start + datetime.timedelta(hours=1)
+    try:
+        start = datetime.datetime(year, month, day, hour, 0)
+    except ValueError:
+        return '指定された日付が不正です。'
 
+    if start < datetime.datetime.now():
+        return f'{month}月{day}日{hour}時はすでに過ぎています。未来の日時を指定してください。'
+
+    end = start + datetime.timedelta(hours=1)
     service = get_calendar_service()
     calendar_id = 'primary'
 
     if check_availability(service, calendar_id, start, end):
-        add_event(service, calendar_id, start, end, f'ドローン点検予約（LINE）')
+        add_event(service, calendar_id, start, end, 'ドローン点検予約（LINE）')
         return f'{month}月{day}日{hour}時は空いているので予約を入れました！'
     else:
         return f'{month}月{day}日{hour}時は埋まっています。他の時間をご指定ください。'
+
