@@ -1,31 +1,19 @@
 import datetime
-import os.path
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# Googleカレンダーの読み書き権限スコープ
+# サービスアカウントキーのファイル名
+SERVICE_ACCOUNT_FILE = 'service_account.json'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
-# Step 1: 認証処理
-def get_calendar_service():
-    creds = None
-    # トークンファイルがあれば読み込む
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # トークンがなければ認証フローを開始
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # トークンを保存
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    return build('calendar', 'v3', credentials=creds)
+# カレンダーID（共有先のカレンダーID。例: 'xxxxxxx@group.calendar.google.com'）
+CALENDAR_ID = 'lingyangshinei@gmail.com'
 
-# Step 2: 予定を確認
+def get_calendar_service():
+    credentials = service_account.Credentials.from_service_account_file(
+        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    return build('calendar', 'v3', credentials=credentials)
+
 def check_availability(service, calendar_id, start_time, end_time):
     events_result = service.events().list(
         calendarId=calendar_id,
@@ -35,9 +23,8 @@ def check_availability(service, calendar_id, start_time, end_time):
         orderBy='startTime'
     ).execute()
     events = events_result.get('items', [])
-    return len(events) == 0  # Trueなら空いている
+    return len(events) == 0
 
-# Step 3: 予定を追加
 def add_event(service, calendar_id, start_time, end_time, summary):
     event = {
         'summary': summary,
@@ -46,54 +33,31 @@ def add_event(service, calendar_id, start_time, end_time, summary):
     }
     service.events().insert(calendarId=calendar_id, body=event).execute()
 
-# --- 実行部分（例） ---
-if __name__ == '__main__':
-    service = get_calendar_service()
-    calendar_id = 'primary'  # 自分のGoogleカレンダー
-
-    # 予約希望日時（例：2025-06-05 14:00〜15:00）
-    start = datetime.datetime(2025, 6, 5, 14, 0)
-    end = datetime.datetime(2025, 6, 5, 15, 0)
-
-    if check_availability(service, calendar_id, start, end):
-        print('空いています、予約を入れます。')
-        add_event(service, calendar_id, start, end, 'ドローン点検予約（LINE）')
-    else:
-        print('その時間は埋まっています。')
 def reserve_if_available(date_string):
     import re
-    import datetime
-    print(f"[reserve_if_available] 入力: {date_string}")
 
     match = re.search(r'(\d{1,2})月(\d{1,2})日(\d{1,2})時', date_string)
     if not match:
-        print("[reserve_if_available] 正規表現マッチ失敗")
         return '日付の形式が正しくありません。「6月5日14時」のように入力してください。'
 
     month, day, hour = map(int, match.groups())
     year = datetime.datetime.now().year
     try:
-        start = datetime.datetime(year, month, day, hour, 0)
+        start = datetime.datetime(year, month, day, hour)
     except ValueError:
-        print("[reserve_if_available] 不正な日付")
         return '指定された日付が不正です。'
 
     if start < datetime.datetime.now():
-        print("[reserve_if_available] 過去の日付")
-        return f'{month}月{day}日{hour}時はすでに過ぎています。未来の日時を指定してください。'
+        return '過去の日時は予約できません。'
 
     end = start + datetime.timedelta(hours=1)
-    print(f"[reserve_if_available] 開始: {start}, 終了: {end}")
+    service = get_calendar_service()
 
-    service = get_calendar_service()  # ここで止まる可能性大
-    calendar_id = 'primary'
-
-    if check_availability(service, calendar_id, start, end):
-        print("[reserve_if_available] 空いてる→予約")
-        add_event(service, calendar_id, start, end, 'ドローン点検予約（LINE）')
-        return f'{month}月{day}日{hour}時は空いているので予約を入れました！'
+    if check_availability(service, CALENDAR_ID, start, end):
+        add_event(service, CALENDAR_ID, start, end, 'ドローン点検予約（LINE）')
+        return f'{month}月{day}日{hour}時に予約を入れました！'
     else:
-        print("[reserve_if_available] 埋まってた")
         return f'{month}月{day}日{hour}時は埋まっています。他の時間をご指定ください。'
+
 
 
