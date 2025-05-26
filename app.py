@@ -2,6 +2,8 @@ from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from calendar_service import reserve_if_available
+
 
 app = Flask(__name__)
 
@@ -24,9 +26,13 @@ def webhook():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    user_msg = event.message.text
-    reply_msg = f"ご予約内容『{user_msg}』を確認しました！"
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_msg))
+    user_text = event.message.text
+    result = reserve_if_available(user_text)
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=result)
+    )
+
 
 import os
 
