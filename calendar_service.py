@@ -63,9 +63,11 @@ if __name__ == '__main__':
 def reserve_if_available(date_string):
     import re
     import datetime
+    print(f"[reserve_if_available] 入力: {date_string}")
 
     match = re.search(r'(\d{1,2})月(\d{1,2})日(\d{1,2})時', date_string)
     if not match:
+        print("[reserve_if_available] 正規表現マッチ失敗")
         return '日付の形式が正しくありません。「6月5日14時」のように入力してください。'
 
     month, day, hour = map(int, match.groups())
@@ -73,18 +75,25 @@ def reserve_if_available(date_string):
     try:
         start = datetime.datetime(year, month, day, hour, 0)
     except ValueError:
+        print("[reserve_if_available] 不正な日付")
         return '指定された日付が不正です。'
 
     if start < datetime.datetime.now():
+        print("[reserve_if_available] 過去の日付")
         return f'{month}月{day}日{hour}時はすでに過ぎています。未来の日時を指定してください。'
 
     end = start + datetime.timedelta(hours=1)
-    service = get_calendar_service()
+    print(f"[reserve_if_available] 開始: {start}, 終了: {end}")
+
+    service = get_calendar_service()  # ここで止まる可能性大
     calendar_id = 'primary'
 
     if check_availability(service, calendar_id, start, end):
+        print("[reserve_if_available] 空いてる→予約")
         add_event(service, calendar_id, start, end, 'ドローン点検予約（LINE）')
         return f'{month}月{day}日{hour}時は空いているので予約を入れました！'
     else:
+        print("[reserve_if_available] 埋まってた")
         return f'{month}月{day}日{hour}時は埋まっています。他の時間をご指定ください。'
+
 
