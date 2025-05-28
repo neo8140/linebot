@@ -1,8 +1,10 @@
 import datetime
 import json
 import os
+import datetime
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from dateutil import parser
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 CALENDAR_ID = 'lingyangshinei@gmail.com'
@@ -36,17 +38,14 @@ def add_event(service, calendar_id, start_time, end_time, summary, user_id, orig
 
 
 def reserve_if_available(date_string, user_id):
-    import re
-    match = re.search(r'(\d{1,2})月(\d{1,2})日(\d{1,2})時', date_string)
-    if not match:
-        return '日付の形式が正しくありません。「6月5日14時」のように入力してください。'
-
-    month, day, hour = map(int, match.groups())
-    year = datetime.datetime.now().year
     try:
-        start = datetime.datetime(year, month, day, hour)
-    except ValueError:
-        return '指定された日付が不正です。'
+        # dateutilで自然言語の日付を解析
+        start = parser.parse(date_string, fuzzy=True)
+
+        # 秒以下を切る（Googleカレンダーと相性良くするため）
+        start = start.replace(minute=0, second=0, microsecond=0)
+    except Exception:
+        return '日付の形式が正しくありません。「6月5日14時」や「6/5 14時」などの形式で入力してください。'
 
     if start < datetime.datetime.now():
         return '過去の日時は予約できません。'
@@ -56,9 +55,9 @@ def reserve_if_available(date_string, user_id):
 
     if check_availability(service, CALENDAR_ID, start, end):
         add_event(service, CALENDAR_ID, start, end, 'ドローン点検予約', user_id, date_string)
-        return f'{month}月{day}日{hour}時に予約を入れました！'
+        return f'{start.month}月{start.day}日{start.hour}時に予約を入れました！'
     else:
-        return f'{month}月{day}日{hour}時は埋まっています。他の時間をご指定ください。'
+        return f'{start.month}月{start.day}日{start.hour}時は埋まっています。他の時間をご指定ください。'
 
 
 
