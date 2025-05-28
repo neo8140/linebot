@@ -44,12 +44,13 @@ def add_event(service, calendar_id, start_time, end_time, summary, user_id, orig
 
 def parse_datetime_naturally(text):
     try:
-        response = openai.ChatCompletion.create(
+        client = openai.OpenAI()
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {
                     "role": "system",
-                    "content": "以下の日本語の日時表現を ISO8601形式（例：2025-06-07T14:00:00+09:00）に**正確に**変換してください。返答は**その形式の文字列だけ**で、余計な説明は一切含めないでください。タイムゾーンは Asia/Tokyo です。"
+                    "content": "以下の日本語の日時表現を ISO8601形式（例：2025-06-07T14:00:00+09:00）に変換してください。余計な説明は出力せず、変換されたISO形式だけを返してください。タイムゾーンはAsia/Tokyoです。"
                 },
                 {
                     "role": "user",
@@ -57,7 +58,7 @@ def parse_datetime_naturally(text):
                 }
             ]
         )
-        result_text = response["choices"][0]["message"]["content"].strip()
+        result_text = response.choices[0].message.content.strip()
         print(f"[GPT応答] {result_text}")
         dt = parser.isoparse(result_text)
         return dt.astimezone(pytz.timezone("Asia/Tokyo"))
