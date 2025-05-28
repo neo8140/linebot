@@ -25,15 +25,17 @@ def check_availability(service, calendar_id, start_time, end_time):
     events = events_result.get('items', [])
     return len(events) == 0
 
-def add_event(service, calendar_id, start_time, end_time, summary):
+def add_event(service, calendar_id, start_time, end_time, summary, user_id, original_message):
     event = {
-        'summary': summary,
+        'summary': f'{summary} - {user_id}',  # イベント名にユーザーID
+        'description': f'元のメッセージ: {original_message}\nLINEユーザーID: {user_id}',  # 説明に詳細
         'start': {'dateTime': start_time.isoformat(), 'timeZone': 'Asia/Tokyo'},
         'end': {'dateTime': end_time.isoformat(), 'timeZone': 'Asia/Tokyo'}
     }
     service.events().insert(calendarId=calendar_id, body=event).execute()
 
-def reserve_if_available(date_string):
+
+def reserve_if_available(date_string, user_id):
     import re
     match = re.search(r'(\d{1,2})月(\d{1,2})日(\d{1,2})時', date_string)
     if not match:
@@ -53,10 +55,11 @@ def reserve_if_available(date_string):
     service = get_calendar_service()
 
     if check_availability(service, CALENDAR_ID, start, end):
-        add_event(service, CALENDAR_ID, start, end, 'ドローン点検予約（LINE）')
+        add_event(service, CALENDAR_ID, start, end, 'ドローン点検予約', user_id, date_string)
         return f'{month}月{day}日{hour}時に予約を入れました！'
     else:
         return f'{month}月{day}日{hour}時は埋まっています。他の時間をご指定ください。'
+
 
 
 

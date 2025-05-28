@@ -27,11 +27,15 @@ def webhook():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_text = event.message.text
-    result = reserve_if_available(user_text)
+    user_id = event.source.user_id  # LINEユーザーID
+
+    result = reserve_if_available(user_text, user_id)  # 引数追加
+
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=result)
     )
+
 
 
 import os
