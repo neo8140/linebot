@@ -95,7 +95,7 @@ numpy==1.26.3
 oauthlib==3.2.2
 omegaconf==2.3.0
 onnx==1.15.0
-onnxruntime-gpu==1.17.1
+onnxruntime==1.17.1
 open-clip-torch==2.20.0
 openai==1.82.0
 opencv-python==4.7.0.68
