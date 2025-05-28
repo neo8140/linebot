@@ -54,17 +54,24 @@ def reserve_if_available(date_string, user_id):
     if not start:
         return '日付の形式が正しくありません。「6月5日14時」や「6/5 14時」などの形式で入力してください。'
 
-    if start < datetime.now(pytz.timezone('Asia/Tokyo')):
+    # タイムゾーン設定
+    japan_tz = pytz.timezone('Asia/Tokyo')
+    now = datetime.now(japan_tz)
+    start = start.astimezone(japan_tz)
+
+    # 過去日時かどうか判定
+    if start < now:
         return '過去の日時は予約できません。'
 
-    end = start + datetime.timedelta(hours=1)
+    end = start + timedelta(hours=1)
     service = get_calendar_service()
 
     if check_availability(service, CALENDAR_ID, start, end):
         add_event(service, CALENDAR_ID, start, end, 'ドローン点検予約', user_id, date_string)
         return f'{start.month}月{start.day}日{start.hour}時に予約を入れました！'
     else:
-        return f'{start.month}月{start.day}日{start.hour}時は埋まっています。他の時間をご指定ください。'
+        return f'{start.month}月{start.day}日{start.hour}時は予約が入っています。他の時間をご指定ください。'
+
 
 
 
