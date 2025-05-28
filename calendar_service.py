@@ -42,12 +42,19 @@ def add_event(service, calendar_id, start_time, end_time, summary, user_id, orig
 # 🔁 将来的にGPTなどで拡張するなら、この関数を差し替える
 def parse_datetime_naturally(text):
     try:
-        dt = parser.parse(text, fuzzy=True)
-        japan_tz = pytz.timezone('Asia/Tokyo')  # ← タイムゾーンを取得
-        dt = dt.replace(minute=0, second=0, microsecond=0)
-        dt = japan_tz.localize(dt)  # ← タイムゾーン付きに変換！
-        return dt
-    except Exception:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            api_key=os.environ["OPENAI_API_KEY"],
+            messages=[
+                {"role": "system", "content": "以下の日本語の日時表現を ISO8601形式 (例: 2025-06-07T15:00:00+09:00) に変換してください。タイムゾーンは常に Asia/Tokyo です。"},
+                {"role": "user", "content": text}
+            ]
+        )
+        result_text = response["choices"][0]["message"]["content"].strip()
+        dt = parser.isoparse(result_text)
+        return dt.astimezone(pytz.timezone("Asia/Tokyo"))
+    except Exception as e:
+        print(f"[GPT日付解析エラー] {e}")
         return None
 
 def reserve_if_available(date_string, user_id):
