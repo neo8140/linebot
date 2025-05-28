@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import openai
+openai.api_key = os.environ["OPENAI_API_KEY"]
 import pytz
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -44,7 +45,6 @@ def parse_datetime_naturally(text):
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
-            api_key=os.environ["OPENAI_API_KEY"],
             messages=[
                 {"role": "system", "content": "以下の日本語の日時表現を ISO8601形式 (例: 2025-06-07T15:00:00+09:00) に変換してください。タイムゾーンは常に Asia/Tokyo です。"},
                 {"role": "user", "content": text}
