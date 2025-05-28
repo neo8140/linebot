@@ -1,17 +1,17 @@
 import datetime
+import json
+import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-# サービスアカウントキーのファイル名
-SERVICE_ACCOUNT_FILE = 'service_account.json'
 SCOPES = ['https://www.googleapis.com/auth/calendar']
-
-# カレンダーID（共有先のカレンダーID。例: 'xxxxxxx@group.calendar.google.com'）
 CALENDAR_ID = 'lingyangshinei@gmail.com'
 
 def get_calendar_service():
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    service_account_info = json.loads(os.environ['SERVICE_ACCOUNT_JSON'])
+    credentials = service_account.Credentials.from_service_account_info(
+        service_account_info, scopes=SCOPES
+    )
     return build('calendar', 'v3', credentials=credentials)
 
 def check_availability(service, calendar_id, start_time, end_time):
@@ -35,7 +35,6 @@ def add_event(service, calendar_id, start_time, end_time, summary):
 
 def reserve_if_available(date_string):
     import re
-
     match = re.search(r'(\d{1,2})月(\d{1,2})日(\d{1,2})時', date_string)
     if not match:
         return '日付の形式が正しくありません。「6月5日14時」のように入力してください。'
@@ -58,6 +57,7 @@ def reserve_if_available(date_string):
         return f'{month}月{day}日{hour}時に予約を入れました！'
     else:
         return f'{month}月{day}日{hour}時は埋まっています。他の時間をご指定ください。'
+
 
 
 
