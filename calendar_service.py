@@ -6,7 +6,8 @@ import pytz
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from dateutil import parser
-from datetime import datetime
+from datetime import datetime, timedelta
+from pytz import timezone
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 CALENDAR_ID = 'lingyangshinei@gmail.com'
