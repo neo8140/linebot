@@ -3,6 +3,7 @@ import json
 import os
 import openai
 import pytz
+import re
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from dateutil import parser
@@ -42,30 +43,30 @@ def add_event(service, calendar_id, start_time, end_time, summary, user_id, orig
     }
     service.events().insert(calendarId=calendar_id, body=event).execute()
 
+
 def parse_datetime_naturally(text):
     try:
-        client = openai.OpenAI()
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
                 {
                     "role": "system",
-                    "content": "以下の日本語の日時表現を ISO8601形式（例：2025-06-07T14:00:00+09:00）に変換してください。余計な説明は出力せず、変換されたISO形式だけを返してください。タイムゾーンはAsia/Tokyoです。"
+                    "content": "以下の日本語の日時表現を ISO8601形式 (例: 2025-06-07T15:00:00+09:00) に変換してください。タイムゾーンは常に Asia/Tokyo です。"
                 },
-                {
-                    "role": "user",
-                    "content": text
-                }
+                {"role": "user", "content": text}
             ]
         )
-        result_text = response.choices[0].message.content.strip()
-        print(f"[GPT応答] {result_text}")
-        dt = parser.isoparse(result_text)
+        result_text = response["choices"][0]["message"]["content"].strip()
+        
+        # 全角文字や非ASCII文字を除去（主に全角コロン・全角空白など対策）
+        result_text_ascii = result_text.encode("ascii", errors="ignore").decode()
+
+        # ISO8601としてパース
+        dt = parser.isoparse(result_text_ascii)
         return dt.astimezone(pytz.timezone("Asia/Tokyo"))
     except Exception as e:
-        error_msg = f"[GPT日付解析エラー] {e}"
-        print(error_msg)
-        return error_msg  # エラー内容を文字列で返す
+        print(f"[GPT日付解析エラー] {e}")
+        return None
 
 def reserve_if_available(date_string, user_id):
     start = parse_datetime_naturally(date_string)
