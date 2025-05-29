@@ -57,24 +57,26 @@ def parse_datetime_naturally(text):
             ]
         )
         result_text = response["choices"][0]["message"]["content"].strip()
-        
-        # 全角文字や非ASCII文字を除去（主に全角コロン・全角空白など対策）
+
+        # ASCIIで再構成して不正文字を除去（これが前回のエラー対策）
         result_text_ascii = result_text.encode("ascii", errors="ignore").decode()
 
-        # ISO8601としてパース
         dt = parser.isoparse(result_text_ascii)
         return dt.astimezone(pytz.timezone("Asia/Tokyo"))
     except Exception as e:
-        print(f"[GPT日付解析エラー] {e}")
-        return None
+        # ここでエラーをログに出す＋呼び出し元に詳細を返す
+        error_message = f"[GPT日付解析エラー] {e}"
+        print(error_message)
+        return error_message  # ← Noneではなく、文字列としてエラーを返す
+
 
 def reserve_if_available(date_string, user_id):
     start = parse_datetime_naturally(date_string)
 
-    # 日付解析失敗時の対処
-    if not isinstance(start, datetime):
-        return f'日付の認識に失敗しました：{start}'
+    if isinstance(start, str):  # エラーメッセージが返ってきたとき
+        return f"日付の認識に失敗しました：{start}"
 
+    # タイムゾーン設定
     japan_tz = pytz.timezone('Asia/Tokyo')
     now = datetime.now(japan_tz)
     start = start.astimezone(japan_tz)
@@ -90,6 +92,8 @@ def reserve_if_available(date_string, user_id):
         return f'{start.month}月{start.day}日{start.hour}時に予約を入れました！'
     else:
         return f'{start.month}月{start.day}日{start.hour}時は予約が入っています。他の時間をご指定ください。'
+
+
 
 
 
